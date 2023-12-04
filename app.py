@@ -2,6 +2,7 @@ from flask import Flask, request, render_template, redirect, url_for, session, f
 import sqlite3
 import subprocess
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from markupsafe import escape
 import os
 
@@ -138,9 +139,11 @@ def upload_book():
         filename = file.filename
         if file:
             try:
+                filename = secure_filename(file.filename)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 filepath = os.path.join('uploads/', filename)
-                out = subprocess.check_output((f"convert -resize 99% {UPLOAD_FOLDER}{filename} {UPLOAD_FOLDER}backup.jpg"), shell=True)
+                cmd = ["convert", "-resize", "99%", os.path.join(app.config['UPLOAD_FOLDER'], filename), os.path.join(app.config['UPLOAD_FOLDER'], 'backup.jpg')]
+                subprocess.check_call(cmd)
                 conn = get_db_connection_books()
                 conn.execute('INSERT INTO books (title, author, cover_path) VALUES (?, ?, ?)', 
                 (book_title, author, filename))
