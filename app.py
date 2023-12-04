@@ -2,6 +2,7 @@ from flask import Flask, request, render_template, redirect, url_for, session, f
 import sqlite3
 import subprocess
 from werkzeug.security import generate_password_hash, check_password_hash
+from markupsafe import escape
 import os
 
 from config import UPLOAD_FOLDER, secret_key
@@ -101,8 +102,8 @@ def view_reviews():
 def post_review():
     conn = get_db_connection_reviews()
     if request.method == 'POST':
-        book_title = request.form['book_title']
-        review_text = request.form['review']
+        book_title = escape(request.form['book_title'])
+        review_text = escape(request.form['review'])
         conn.execute('INSERT INTO reviews (title, review) VALUES (?, ?)', 
                      (book_title, review_text))
         conn.commit()
