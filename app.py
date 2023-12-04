@@ -83,12 +83,23 @@ def home():
 def view_cover():
     cover_path = request.args.get('cover_path')
     if cover_path:
+        safe_directory = os.path.abspath('uploads/')
+        conn = get_db_connection_books()
+        db_cover_filename = conn.execute('SELECT cover_path FROM books WHERE cover_path= ?', (cover_path,)).fetchone()
+        conn.close()
+        if not db_cover_filename:
+            return 'Файл обложки не найден в базе данных'
+        cover_path = os.path.abspath(os.path.join(safe_directory, cover_path))
+
+        if not cover_path.startswith(safe_directory):
+            return 'Недопустимый путь к обложке'
+
         try:
             return send_file(cover_path)
         except Exception as e:
             return str(e)
-    return 'Путь к обложке не указан'
 
+    return 'Путь к обложке не указан'
 
 @app.route('/reviews')
 def view_reviews():
@@ -127,7 +138,7 @@ def upload_book():
                 out = subprocess.check_output((f"convert -resize 99% {UPLOAD_FOLDER}{filename} {UPLOAD_FOLDER}backup.jpg"), shell=True)
                 conn = get_db_connection_books()
                 conn.execute('INSERT INTO books (title, author, cover_path) VALUES (?, ?, ?)', 
-                (book_title, author, filepath))
+                (book_title, author, filename))
                 conn.commit()
                 conn.close()
             except Exception as e:
