@@ -26,16 +26,18 @@ def login():
         password = request.form['password']
 
         conn = get_db_connection_users()
-        query = f"SELECT * FROM users WHERE name = '{username}' and password = '{password}'"
-        user = conn.execute(query).fetchone()
+        query = "SELECT * FROM users WHERE name = ?"
+        user = conn.execute(query, (username,)).fetchone()
         conn.close()
-        if user:
+
+        if user and check_password_hash(user['password'], password):
             session['username'] = username
             return redirect(url_for('home'))
         else:
             flash('Неверное имя пользователя или пароль', 'error')
 
     return render_template('login.html')
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -56,11 +58,14 @@ def register():
             flash('Такой пользователь уже существует!', 'error')
             conn.close()
             return redirect(url_for('register'))
+
+        hashed_password = generate_password_hash(password)
+
         try:
-            conn.execute('INSERT INTO users (name, password) VALUES (?, ?)', (username, password))
+            conn.execute('INSERT INTO users (name, password) VALUES (?, ?)', (username, hashed_password))
             conn.commit()
         except sqlite3.IntegrityError:
-            flash('An error occurred, please try again.', 'error')
+            flash('Произошла ошибка, попробуйте снова.', 'error')
         finally:
             conn.close()
 
